@@ -1,0 +1,101 @@
+package practice.sumofpartition;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.StringTokenizer;
+
+public class Solution2 {
+	
+	static int T, N, Q;
+	static long[] Num;
+	static long[] NumCopy;
+	static long Ans;
+	static int Mod = 1000000007;
+
+	public static void main(String[] args) throws Exception {
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+		
+		StringTokenizer st;
+		st = new StringTokenizer(br.readLine());
+		
+		T = Integer.parseInt(st.nextToken());
+		
+		// 1 ~ 100000 에 대한 구간합 트리를 먼저 만든다.
+		// 정수가 100,000 까지라 함은 트리의 depth 는 17 을 넘지 않는다.
+		// 2^17 = 131,072
+		// 따라서 구간합의 Tree 수는 2^18 = 262,144 까지 잡아놔도 문제 없다
+		Num = new long[262144];
+		NumCopy = new long[262144];
+		
+		init(1, 1, 100000);
+		NumCopy = Num.clone(); // 구간합을 저장해놓은 값을 NumCopy 에 넣어놓고 반복하여 사용한다.
+		
+		int questionType, var1, var2;
+		for( int t = 1 ; t <= T ; t ++ ) {
+			st = new StringTokenizer(br.readLine());
+			N = Integer.parseInt(st.nextToken());
+			
+			st = new StringTokenizer(br.readLine());
+			Q = Integer.parseInt(st.nextToken());
+			
+			Num = NumCopy.clone(); // 문제 반복시마다 초기화 처리 한다.
+			Ans = 0;
+			
+			for( int q = 1 ; q <= Q ; q++ ) {
+				st = new StringTokenizer(br.readLine());
+				questionType = Integer.parseInt(st.nextToken());
+				var1 = Integer.parseInt(st.nextToken());
+				var2 = Integer.parseInt(st.nextToken());
+				
+				if( questionType == 0 ) { // update
+					long diff = var2 - sum(1, 1, 100000, var1, var1);
+					update(1, 1, 100000, var1, diff);
+				}else {
+					Ans = Ans + sum(1, 1, 100000, var1, var2) % Mod;
+					Ans %= Mod;
+				}
+			}
+			bw.write("#"+t+" "+Ans);
+			bw.flush();
+			bw.newLine();
+		}
+	}
+	static long init(int idx, int start, int end) {
+		// start 와 end 가 같다는 의미는 리프노드라는 의미..
+		// 
+		if( start == end ) return Num[idx] = start;
+		else {
+			return Num[idx] = init(idx*2, start, (start+end)/2)
+					        + init(idx*2+1, (start+end)/2+1, end); 
+		}
+	}
+	// 구간 합계 구하기
+	// idx = tree 의 노드
+	// start ~ end 는 숫자의 범위
+	// left~right 는 구간의 범위
+	static long sum(int idx, int start, int end, int left, int right) {
+		if( left > end || right < start ) return 0;
+		
+		if( left <= start && end <= right ) return Num[idx];
+		
+		return sum(idx*2, start, (start+end)/2, left, right) + 
+			   sum(idx*2+1, (start+end)/2+1, end, left, right);
+	}
+	
+	static void update(int idx, int start, int end, int node, long diff) {
+		if( node < start || node > end ) return;
+		
+		Num[idx] = Num[idx] + diff;
+		
+		if( start != end ) {
+			update( idx*2, start, (start+end)/2, node, diff);
+			update( idx*2+1, (start+end)/2+1, end, node, diff);
+		}		
+	}
+
+
+}
+

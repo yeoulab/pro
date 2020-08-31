@@ -1,0 +1,80 @@
+package pro.practice.allPairShortRoute;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.Stack;
+import java.util.StringTokenizer;
+
+public class Solution {
+	
+	static int T, N, K, seq;
+	static int[] link, visit, path;
+	
+	public static void main(String[] args) throws Exception {
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		
+		T = Integer.parseInt(br.readLine());
+		for (int t = 1; t <= T; t++) {
+			StringTokenizer st = new StringTokenizer(br.readLine());
+			
+			N = Integer.parseInt(st.nextToken());
+			
+			link  = new int[N+1];
+			visit = new int[N+1];
+			path  = new int[N+1];
+			
+			st = new StringTokenizer(br.readLine());
+			for (int i = 0; i <N; i++) {
+				link[i+1] = Integer.parseInt(st.nextToken());
+			}
+			
+			seq = 1;
+			for (int i = 1; i <= N; i++) {
+				if (visit[i] == 0) {
+					solve(i);
+				}
+			}
+			long answer = 0;
+			for (int i = 1; i <= N; i++) {
+				// 연속합 구하는 산술식
+				answer += ((long)path[i] * (long)(path[i]+1)) /2;
+			}
+		System.out.println("#" + t + " " + answer);	
+		}
+	}
+	
+	public static void solve(int n) {
+		
+		Stack<Integer> stack = new Stack<Integer>();
+		int here = n;
+		
+		while (true) {
+			//이미 방문한 노드의 경우
+			if (visit[here] != 0) {
+				//싸이클을 찾은 경우
+				if (visit[here] >= visit[n]) 
+				{
+					//싸이클 노드의 개수
+					int cnt = seq - visit[here];
+					for (int i = 0; i < cnt; i++) {
+						path[stack.pop()] = cnt -1;
+					}
+				}
+				break;
+			}
+			
+			// Stack 넣기
+			stack.add(here);
+			visit[here] = seq++;
+			
+			//다음지점 넣기
+			here = link[here];
+		}
+		
+		while (!stack.empty()) {
+			int top = stack.pop();
+			path[top] = path[link[top]] +1;
+		}	
+	}
+}
+

@@ -1,0 +1,173 @@
+package pro.practice.catchATheif;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.StringTokenizer;
+
+public class Solution {
+
+	// 교차로 2 <= N <= 1000
+	// 도로   1 <= M <= 3000
+	static int T, N, M;
+	static ArrayList<Integer>[] HalfWay; // 단방향
+	static ArrayList<Integer>[] FullWay; // 양방향
+	static int[] Ans;
+	
+	static int[] Visited;
+	static boolean CycleYn;
+	static Queue<Edge> Q;
+	static int[] Indegree;
+	
+	static class Edge{
+		int s;
+		int e;
+		public Edge(int s, int e) {
+			this.s = s;
+			this.e = e;
+		}
+	}
+	
+	public static void main(String[] args) throws Exception {
+		// TODO Auto-generated method stub
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+		StringTokenizer st;
+		
+		st = new StringTokenizer(br.readLine());
+		T = Integer.parseInt(st.nextToken());
+		
+		for( int t = 1 ; t <= T ; t++ ) {
+			st = new StringTokenizer(br.readLine());
+			N = Integer.parseInt(st.nextToken());
+			M = Integer.parseInt(st.nextToken());
+						
+			HalfWay = new ArrayList[N+1]; // 노드개수만큼
+			FullWay = new ArrayList[N+1]; // 노드개수만큼	
+			Indegree = new int[N+1];
+			
+			// 도로 초기화
+			for( int n = 0 ; n <= N ; n++ ) {
+				HalfWay[n] = new ArrayList<Integer>();
+				FullWay[n] = new ArrayList<Integer>();
+			}
+			
+			Q = new LinkedList<Edge>();
+						
+			int s, e, type, fullWayCnt = 0;
+			for( int m = 1 ; m <= M ; m++ ) {
+				st = new StringTokenizer(br.readLine());
+				s = Integer.parseInt(st.nextToken());
+				e = Integer.parseInt(st.nextToken());
+				type = Integer.parseInt(st.nextToken());
+				
+				if( type == 0 ) {
+					FullWay[s].add(e);
+					Q.add(new Edge(s, e)); // Queue 에 넣는다.
+					fullWayCnt++;
+				}
+				else {
+					HalfWay[s].add(e);
+					Indegree[e]++; // 위상정렬을 위해서
+				}
+			}
+			
+//			FullWay.length;
+			// index 0 ~ 
+			Ans = new int[fullWayCnt];
+			
+			// 일방통행 도로만으로 cycle 이 생성되는지 확인한다.
+			Visited = new int[N+1];
+			
+			// Cycle 이 존재하면
+			if( confirmCycle() ) {
+				bw.write("#"+t+" impossible");
+				bw.flush();
+				bw.newLine();
+				continue;
+			}
+			
+			// 처음 Edge 부터 Queue 에서 빼서 확인한다.
+			int cnt = 0;
+			while( !Q.isEmpty() ) {
+				Edge edge = Q.poll();
+				
+				// 정방향(s->e) 를 추가했을 때 싸이클이 생기는지 확인
+				// HalfWay 에 추가
+				// Cycle 이 생기면 삭제하고, 반대로 넣는다.
+				HalfWay[edge.s].add(edge.e);
+				Indegree[edge.e]++; // 진입점을 추가
+				
+				// Cycle 이 생기지 않은 경우
+				// 0 으로 세팅하고 HalfWay 는 그대로 둔다.
+				if( !confirmCycle() ) { 
+					Ans[cnt] = 0;
+				}else {
+					// edge.s 에 넣었던 마지막 index 를 삭제한다.
+					HalfWay[edge.s].remove(HalfWay[edge.s].size()-1);
+					Indegree[edge.e]--;
+
+					// 다른 방향으로 (e -> s) 로 HalfWay 에 넣는다.
+					HalfWay[edge.e].add(edge.s);
+					Indegree[edge.s]++;
+					
+					Ans[cnt] = 1;
+					
+				}
+				cnt++;
+			}
+			
+			String ans = "";
+			for( int i = 0 ; i < fullWayCnt ; i++ ) {
+				ans += Ans[i];
+			}
+			
+			bw.write("#"+t+" "+ans);
+			bw.flush();
+			bw.newLine();
+		}
+		
+		br.close();
+		bw.close();
+	}
+	static boolean confirmCycle() {
+		
+		int[] chkIndegree = new int[N+1];
+		
+		// Indegree 는 계속 사용해야하므로 로컬로 이동
+		for( int i = 0 ; i <= N ; i++ ) {
+			chkIndegree[i] = Indegree[i];
+		}
+		
+		Queue<Integer> q = new LinkedList();
+		for( int n = 1 ; n <= N ; n++ ) {
+			if( chkIndegree[n] == 0 ) { // 시작점인 경우
+				q.add(n);
+			}
+		}
+		
+		for( int n = 1 ; n <= N ; n++ ) {
+			// 시작점이 사라졌다면... 싸이클 존재
+			if( q.isEmpty() ) {
+				return true;
+			}
+			
+			int node = q.poll();
+			for( int e : HalfWay[node] ) {
+				chkIndegree[e]--; //진입차수를 감소시킨다.
+				
+				if( chkIndegree[e] == 0 ) {
+					q.add(e);
+				}
+			}
+		}
+		
+		return false;
+	}
+}
+
+

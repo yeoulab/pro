@@ -1,0 +1,144 @@
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.StringTokenizer;
+
+// (중상) [필수][기출P-0023] 운동하자
+// http://182.193.11.65/common/practice/problem/view.do?problemId=AV6238MAEouojUGx&_menuId=AVUU732mAAHBC0c9&_menuF=true
+//public class Solution {
+public class Solution {
+	public static final int INF_DIST = 1000000000 + 1;	// 도로의 길이는 1 이상 1,000,000,000이하의 자연수이다.
+	public static final int MAX_N = 500, MAX_K = MAX_N - 1;
+	public static final int MOD = 1000000007;
+	
+	public static int T, N, M, K, Answer;
+	public static ArrayList<Integer>[] Vadj, Vadjdist;
+	public static long[][] Dist;
+	public static int[][] Dp;
+	
+	public static void main(String[] args) throws Exception {
+		//System.setIn(new FileInputStream("sample_input_운동하자.txt"));
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		
+		// 전역 변수 생성
+		Vadj = new ArrayList[MAX_N + 1];		// 내 정점에 인접한 정점들을 인접 리스트에 저장
+		Vadjdist = new ArrayList[MAX_N + 1];	// 내 정점에 인접한 정점들과의 거리를 인접 리스트에 저장
+		for (int n = 1; n <= MAX_N; n++) {
+			Vadj[n] = new ArrayList<>();
+			Vadjdist[n] = new ArrayList<>();
+		}
+		
+		Dist = new long[MAX_N + 1][MAX_N + 1];	// 모든 두 정점 간 거리를 2차원 배열에 저장
+		Dp = new int[MAX_K + 1][MAX_N + 1];		// K개 도로를 사용하여 N번 교차로에 도착할 수 있는 경우의 수
+		
+		T = Integer.parseInt(br.readLine());
+		
+		for (int iTestCase = 1; iTestCase <= T; iTestCase++) {
+			StringTokenizer st = new StringTokenizer(br.readLine());
+			N = Integer.parseInt(st.nextToken());	// 교차로와 도로의 개수를 각각 나타내는 자연수 N, M이 주어진다. (2 ≤ N ≤ 500, 1 ≤ M ≤ 100,000)
+			M = Integer.parseInt(st.nextToken());
+			K = N - 1;								// K : 경로에 포함된 도로의 개수는 최대 N-1이다.			
+			
+            // 전역 변수 초기화
+            if (iTestCase > 1) {
+                init();
+            }
+			
+			for (int m = 1; m <= M; m++) {
+				st = new StringTokenizer(br.readLine());
+				int v1 = Integer.parseInt(st.nextToken());		// 첫 두 자연수는 도로가 연결하는 서로 다른 교차로들의 번호이며
+				int v2 = Integer.parseInt(st.nextToken());
+				int length = Integer.parseInt(st.nextToken());	// 세번째 자연수는 도로의 길이이다. 도로의 길이는 1 이상 1,000,000,000이하의 자연수이다.
+				
+				Vadj[v1].add(v2);
+				Vadjdist[v1].add(length);
+				
+				Vadj[v2].add(v1);
+				Vadjdist[v2].add(length);
+				
+				// 입력받은 두 정점 간 거리를 2차원 배열에 저장
+				Dist[v1][v2] = length;
+				Dist[v2][v1] = length;
+			}
+			
+			// Floyd-Warshall 알고리즘으로 모든 두 정점 간 최단 거리를 구함
+			floydWarshall();
+			
+			// 인접한 두 교차로를 이동할때는 두 교차로 사이의 최단경로를 이용하여 이동하지 않는다.
+			// 철수는 가까운 길을 가는 것을 절대적으로 싫어하기 때문에 인접한 두 교차로를 이동할때는 두 교차로 사이의 최단경로를 이용하여 이동하지 않는다.
+			for (int n = 1; n <= N; n++) {
+				for (int i = Vadj[n].size() - 1; i >= 0; i--) {		// 인접 리스트에서 제거할 때는 뒤에서부터 처리해야 함
+					int adjv = Vadj[n].get(i);
+					
+					// 최단 경로를 가진 도로를 인접 리스트에서 제거함
+					if (Vadjdist[n].get(i) == Dist[n][adjv]) {
+						Vadj[n].remove(i);
+						Vadjdist[n].remove(i);
+					}
+				}
+			}
+			
+			// 최초 1번 정점에서 출발하므로 첫 번째 도로를 사용하는 점화식 초기 값을 미리 구함
+			// 철수는 1번 교차로에서 출발하며, 2번 교차로에 도착하려고 한다.
+			for (int i = 0, size = Vadj[1].size(); i < size; i++) {
+				int adjv = Vadj[1].get(i);
+				
+				Dp[1][adjv]++;		// K개 도로를 사용하여 N번 교차로에 도착할 수 있는 경우의 수
+			}
+
+			// 두 번째 도로부터는 직전에 도착한 정점의 인접 리스트를 사용함
+			for (int k = 2; k <= K; k++) {
+				for (int n = 1; n <= N; n++) {
+					for (int i = 0, size = Vadj[n].size(); i < size; i++) {
+						int adjv = Vadj[n].get(i);
+						
+						// K개 도로를 사용하여 N번 교차로에 도착할 수 있는 경우의 수
+						Dp[k][n] = (Dp[k][n] + Dp[k - 1][adjv]) % MOD;
+					}
+				}
+			}
+			
+			// 최종적으로 2번 정점에 도착하는 경우를 구해야 하므로 2번 정점의 값을 모두 더함
+			// 철수는 1번 교차로에서 출발하며, 2번 교차로에 도착하려고 한다.
+			for (int k = 1; k <= K; k++) {
+				Answer = (Answer + Dp[k][2]) % MOD;
+			}
+			
+			System.out.println("#" + iTestCase + " " + Answer);
+		}
+		
+		br.close();
+	}
+
+	public static void floydWarshall() {
+		for (int k = 1; k <= N; k++) {
+			for (int i = 1; i <= N; i++) {
+				for (int j = 1; j <= N; j++) {
+					Dist[i][j] = Math.min(Dist[i][j], Dist[i][k] + Dist[k][j]);
+				}
+			}
+		}
+	}
+	
+	public static void init() {
+		Answer = 0;
+		
+        for (int n = 1; n <= N; n++) {
+            Vadj[n].clear();
+            Vadjdist[n].clear();
+        }
+        
+		for (int i = 1; i <= N; i++) {
+			for (int j = 1; j <= N; j++) {
+				Dist[i][j] = (i == j ? 0 : INF_DIST);	// 모든 두 정점 간 거리 값 초기화
+			}
+		}
+		
+        for (int k = 1; k <= K; k++) {
+			Arrays.fill(Dp[k], 1, N + 1, 0);
+		}
+	}
+}
+
